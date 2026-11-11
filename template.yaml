@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Photo Viewer (learning microservices in AWS)
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 15
+    MemorySize: 256
+    Environment:
+      Variables:
+        PHOTOS_BUCKET: !Sub photo-viewer-${AWS::AccountId}-${AWS::Region}
+
+Resources:
+  PhotosBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub photo-viewer-${AWS::AccountId}-${AWS::Region}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedMethods: [GET, PUT]
+            AllowedOrigins: ['*']
+            AllowedHeaders: ['*']
+            MaxAge: 3000
+
+  PresignFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: viewer-presign
+      CodeUri: src/presign/
+      Handler: app.handler
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Sub photo-viewer-${AWS::AccountId}-${AWS::Region}
+  
+  ThumbnailFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: viewer-thumbnail
+      CodeUri: src/thumbnail/
+      Handler: app.handler
+      MemorySize: 512
+      Timeout: 30
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Sub photo-viewer-${AWS::AccountId}-${AWS::Region}
+      Events:
+        NewPhoto:
+          Type: S3
+          Properties:
+            Bucket: !Ref PhotosBucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: originals/
+
+Outputs:
+  PhotosBucketName:
+    Value: !Ref PhotosBucket
