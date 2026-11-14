@@ -1,4 +1,5 @@
 .aws-sam/
 frontend/config.js
 .DS_Store
-src/photosout.json
+src/photos
+src/out.json
