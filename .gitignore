@@ -2,4 +2,4 @@
 frontend/config.js
 .DS_Store
 src/photos
-src/out.json
+out.json

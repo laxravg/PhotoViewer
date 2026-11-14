@@ -38,6 +38,13 @@ Resources:
       Policies:
         - S3WritePolicy:
             BucketName: !Sub photo-viewer-${AWS::AccountId}-${AWS::Region}
+      Events:
+        UploadUrl:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: POST
+            Path: /photos/upload-url
   
   ThumbnailFunction:
     Type: AWS::Serverless::Function
@@ -78,16 +85,66 @@ Resources:
   CatalogFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: visor-catalog
+      FunctionName: viewer-catalog
       CodeUri: src/catalog/
       Handler: app.handler
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref PhotosTable
         - S3ReadPolicy:
-            BucketName: !Sub visor-fotos-${AWS::AccountId}-${AWS::Region}
+            BucketName: !Sub photo-viewer-${AWS::AccountId}-${AWS::Region}
+      Events:
+        ListPhotos:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: GET
+            Path: /photos
+    
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      Auth:
+        DefaultAuthorizer: CognitoJwt
+        Authorizers:
+          CognitoJwt:
+            IdentitySource: $request.header.Authorization
+            JwtConfiguration:
+              issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}
+              audience:
+                - !Ref UserPoolClient
+      CorsConfiguration:
+        AllowOrigins:
+          - '*'
+        AllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+  
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: visor-users
+      UsernameAttributes:
+        - email
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
 
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      ClientName: visor-web
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
 
 Outputs:
   PhotosBucketName:
     Value: !Ref PhotosBucket
+  ApiUrl:
+    Value: !Sub https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com
