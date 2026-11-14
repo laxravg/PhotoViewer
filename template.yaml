@@ -10,6 +10,7 @@ Globals:
     Environment:
       Variables:
         PHOTOS_BUCKET: !Sub photo-viewer-${AWS::AccountId}-${AWS::Region}
+        TABLE_NAME: !Ref PhotosTable
 
 Resources:
   PhotosBucket:
@@ -49,6 +50,8 @@ Resources:
       Policies:
         - S3CrudPolicy:
             BucketName: !Sub photo-viewer-${AWS::AccountId}-${AWS::Region}
+        - DynamoDBWritePolicy:
+            TableName: !Ref PhotosTable
       Events:
         NewPhoto:
           Type: S3
@@ -60,6 +63,30 @@ Resources:
                 Rules:
                   - Name: prefix
                     Value: originals/
+  PhotosTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: photo-viewer
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: photoId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: photoId
+          KeyType: HASH
+
+  CatalogFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: visor-catalog
+      CodeUri: src/catalog/
+      Handler: app.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref PhotosTable
+        - S3ReadPolicy:
+            BucketName: !Sub visor-fotos-${AWS::AccountId}-${AWS::Region}
+
 
 Outputs:
   PhotosBucketName:
