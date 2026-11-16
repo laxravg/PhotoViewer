@@ -3,46 +3,153 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Mi visor de fotos</title>
+  <title>Biblioteca de fotos</title>
   <style>
-    :root { color-scheme: light dark; }
-    body { font-family: system-ui, sans-serif; margin: 0; }
-    header { display: flex; justify-content: space-between; align-items: center;
-             padding: 12px 20px; border-bottom: 1px solid #8884; }
-    h1 { font-size: 1.1rem; margin: 0; }
-    main { padding: 20px; max-width: 1100px; margin: 0 auto; }
-    form { display: grid; gap: 8px; max-width: 320px; margin: 40px auto; }
-    input, button { padding: 8px; font: inherit; }
-    #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 8px; margin-top: 16px; }
-    #grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px;
-                cursor: zoom-in; }
-    #lightbox { position: fixed; inset: 0; background: #000d; display: flex;
-                align-items: center; justify-content: center; cursor: zoom-out; }
-    #lightbox img { max-width: 95vw; max-height: 95vh; }
+    :root {
+      --bg: #F6F4F0; --ink: #1D1B19; --muted: #5C5750;
+      --card: #FFFFFF; --line: #CFC9BE; --accent: #0F766E;
+    }
+    body { margin: 0; background: var(--bg); color: var(--ink);
+           font-family: system-ui, sans-serif; }
+    button { font: inherit; cursor: pointer; }
+    button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
     [hidden] { display: none !important; }
-    #msg { min-height: 1.4em; }
+
+    #login { max-width: 320px; margin: 80px auto; display: flex;
+             flex-direction: column; gap: 12px; }
+    #login input { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
+
+    #app { max-width: 1160px; margin: 0 auto; padding: 32px; box-sizing: border-box; }
+    .top { display: flex; flex-wrap: wrap; justify-content: space-between;
+           align-items: center; gap: 16px; margin-bottom: 24px; }
+    .top h1 { margin: 0; font-size: 30px; letter-spacing: -0.02em; }
+    .muted { color: var(--muted); font-size: 14px; }
+    .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+    .toggle { display: flex; gap: 4px; padding: 4px; background: #E8E4DC; border-radius: 12px; }
+    .toggle button { min-height: 40px; padding: 0 16px; border: 0; border-radius: 9px;
+                     background: transparent; color: var(--muted); font-weight: 600; }
+    .toggle button.on { background: #FFFFFF; color: var(--ink); }
+    .btn { min-height: 44px; padding: 0 16px; border: 1px solid var(--line);
+           border-radius: 12px; background: var(--card); color: var(--ink);
+           display: inline-flex; align-items: center; font-size: 14px; }
+    .btn.primary { background: var(--accent); border-color: var(--accent);
+                   color: #FFFFFF; font-weight: 600; cursor: pointer; }
+    .btn.link { border: 0; background: transparent; color: var(--muted); }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+    .chip { min-height: 44px; padding: 0 16px; border: 1px solid var(--line);
+            border-radius: 999px; background: var(--card); color: var(--ink);
+            display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
+    .chip.on { background: var(--accent); border-color: var(--accent); color: #FFFFFF; }
+    .chip .count { font-size: 12px; font-weight: 600; opacity: 0.8; }
+
+    .stage { position: relative; width: 100%; aspect-ratio: 16 / 9;
+             background: #D9D4CB; border-radius: 20px; overflow: hidden; }
+    .stage img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .counter { position: absolute; left: 20px; bottom: 20px; padding: 6px 12px;
+               border-radius: 999px; background: rgba(20,19,18,0.72);
+               color: #FFFFFF; font-size: 13px; }
+    .nav { position: absolute; top: 50%; margin-top: -26px; width: 52px; height: 52px;
+           border: 0; border-radius: 999px; background: rgba(255,255,255,0.92);
+           font-size: 28px; line-height: 1; }
+    .nav.left { left: 16px; } .nav.right { right: 16px; }
+    .meta { display: flex; flex-wrap: wrap; justify-content: space-between;
+            align-items: center; gap: 12px; margin: 16px 0; }
+    .meta-title { font-size: 20px; font-weight: 600; }
+    .thumbs { display: flex; gap: 10px; overflow-x: auto; padding: 4px 4px 8px; }
+    .thumbs button { flex: 0 0 auto; width: 112px; height: 76px; padding: 3px;
+                     border: 2px solid transparent; border-radius: 12px;
+                     background: #FFFFFF; opacity: 0.75; }
+    .thumbs button.on { border-color: var(--accent); opacity: 1; }
+    .thumbs img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; display: block; }
+
+    .grid { display: grid; gap: 16px;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+    .grid button { position: relative; padding: 0; border: 0; border-radius: 16px;
+                   overflow: hidden; aspect-ratio: 4 / 3; background: #D9D4CB; }
+    .grid img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .badge { position: absolute; left: 10px; bottom: 10px; padding: 4px 10px;
+             border-radius: 999px; background: rgba(20,19,18,0.72);
+             color: #FFFFFF; font-size: 12px; }
+
+    dialog { border: 0; border-radius: 16px; padding: 24px; width: min(420px, 90vw); }
+    dialog h3 { margin-top: 0; }
+    .chip .x { border: 0; background: transparent; color: inherit;
+               font-size: 16px; padding: 0 0 0 4px; }
+    #tag-input { width: 100%; box-sizing: border-box; padding: 10px 12px; margin-top: 8px;
+                 border: 1px solid var(--line); border-radius: 10px; font-size: 14px; }
+    .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+    .msg { color: var(--muted); font-size: 14px; min-height: 20px; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Mi visor de fotos</h1>
-    <button id="logout" hidden>Salir</button>
-  </header>
-  <main>
-    <form id="login">
-      <input id="email" type="email" placeholder="Email" required>
-      <input id="password" type="password" placeholder="Contraseña" required>
-      <button>Entrar</button>
-    </form>
-    <section id="app" hidden>
-      <input id="file" type="file" accept="image/jpeg,image/png" multiple>
-      <div id="grid"></div>
+  <form id="login" hidden>
+    <h2>Entrar</h2>
+    <label>Email <input id="email" type="email" required></label>
+    <label>Contraseña <input id="password" type="password" required></label>
+    <button class="btn primary" type="submit">Entrar</button>
+    <p id="login-msg" class="msg"></p>
+  </form>
+
+  <main id="app" hidden>
+    <header class="top">
+      <div>
+        <h1>Biblioteca de fotos</h1>
+        <div id="summary" class="muted"></div>
+      </div>
+      <div class="actions">
+        <div class="toggle" role="group" aria-label="Vista">
+          <button id="btn-visor" class="on" type="button">Visor</button>
+          <button id="btn-galeria" type="button">Galería completa</button>
+        </div>
+        <label class="btn primary">
+          Subir foto
+          <input id="file" type="file" accept="image/jpeg,image/png" multiple hidden>
+        </label>
+        <button id="logout" class="btn link" type="button">Salir</button>
+      </div>
+    </header>
+
+    <div id="chips" class="chips" role="group" aria-label="Filtrar por tag"></div>
+
+    <section id="visor-view">
+      <div class="stage">
+        <img id="big" alt="">
+        <div id="counter" class="counter"></div>
+        <button id="prev" class="nav left" type="button" aria-label="Foto anterior">‹</button>
+        <button id="next" class="nav right" type="button" aria-label="Foto siguiente">›</button>
+      </div>
+      <div class="meta">
+        <div>
+          <div id="title" class="meta-title"></div>
+          <div id="current-tags" class="muted"></div>
+        </div>
+        <button id="edit-tags" class="btn" type="button">Editar tags</button>
+      </div>
+      <div id="thumbs" class="thumbs" role="group" aria-label="Miniaturas"></div>
     </section>
-    <p id="msg"></p>
+
+    <section id="galeria-view" hidden>
+      <div id="grid" class="grid"></div>
+    </section>
+
+    <p id="msg" class="msg"></p>
   </main>
-  <div id="lightbox" hidden><img id="big" alt=""></div>
-  <script src="config.js"></script>
-  <script src="app.js"></script>
+
+  <dialog id="tag-editor">
+    <h3>Tags de la foto</h3>
+    <div id="tag-chips-edit" class="chips"></div>
+    <label for="tag-input" class="muted">Añadir tag (Enter para añadir)</label>
+    <input id="tag-input" list="tag-suggestions" autocomplete="off">
+    <datalist id="tag-suggestions"></datalist>
+    <p id="tag-msg" class="msg"></p>
+    <div class="dialog-actions">
+      <button id="cancel-tags" class="btn" type="button">Cancelar</button>
+      <button id="save-tags" class="btn primary" type="button">Guardar</button>
+    </div>
+  </dialog>
+
+  <script src="./config.js"></script>
+  <script src="./app.js"></script>
 </body>
 </html>
