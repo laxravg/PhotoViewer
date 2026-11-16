@@ -37,6 +37,8 @@ def handler(event, context):
             "createdAt": i["createdAt"],
             "thumbUrl": signed_url(f"thumbs/{i['photoId']}.jpg"),
             "webUrl": signed_url(f"web/{i['photoId']}.jpg"),
+            "tags": sorted(i.get("tags", set())),
+
         }
         for i in items
     ]

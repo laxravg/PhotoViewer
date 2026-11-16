@@ -100,6 +100,23 @@ Resources:
             ApiId: !Ref HttpApi
             Method: GET
             Path: /photos
+  
+  TagsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: viewer-tags
+      CodeUri: src/tags/
+      Handler: app.handler
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref PhotosTable
+      Events:
+        UpdateTags:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Method: PUT
+            Path: /photos/{photoId}/tags
     
   HttpApi:
     Type: AWS::Serverless::HttpApi
@@ -116,10 +133,7 @@ Resources:
       CorsConfiguration:
         AllowOrigins:
           - '*'
-        AllowMethods:
-          - GET
-          - POST
-          - OPTIONS
+        AllowMethods: [GET, POST, PUT, OPTIONS]
         AllowHeaders:
           - Content-Type
           - Authorization

@@ -35,12 +35,16 @@ def handler(event, context):
                     ContentType="image/jpeg",
                 )
 
-        table.put_item(
-            Item={
-                "photoId": photo_id,
-                "createdAt": datetime.now(timezone.utc).isoformat(),
-                "width": width,
-                "height": height,
-                "originalKey": key,
-            }
+        table.update_item(
+            Key={"photoId": photo_id},
+            UpdateExpression=(
+                "SET createdAt = if_not_exists(createdAt, :c), "
+                "width = :w, height = :h, originalKey = :k"
+            ),
+            ExpressionAttributeValues={
+                ":c": datetime.now(timezone.utc).isoformat(),
+                ":w": width,
+                ":h": height,
+                ":k": key,
+            },
         )
